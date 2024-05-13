@@ -1,1 +1,3 @@
 # Chirp
+
+## Link to json in go https://blog.boot.dev/golang/json-golang/?_gl=1*16n2jb9*_gcl_aw*R0NMLjE3MTEwNTMwNjguQ2p3S0NBand0ZS12QmhCRkVpd0FRU3ZfeGRDaWpSRUVnMXdHdVZncmZrSHF1MFczcWtjYldsSWF1QndGRTdnVHY2dXYtclM4WUtFV1J4b0NqOFlRQXZEX0J3RQ..*_gcl_au*MTkzNDkwMDI1Mi4xNzEzMzE1ODM1*_ga*MTIxMjk0NjkyNy4xNzA1Mjk1MzQz*_ga_M7P2PBGN8N*MTcxNTQwNDUzMy4yMDcuMS4xNzE1NDA1NDg0LjEzLjAuMA..
