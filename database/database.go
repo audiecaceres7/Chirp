@@ -2,138 +2,119 @@ package database
 
 import (
 	"encoding/json"
-	"fmt"
+	"errors"
 	"log"
 	"os"
 	"sync"
 )
 
 type DB struct {
-	Path  string
-	Mutex *sync.RWMutex
+	Path        string
+	Mutex       *sync.RWMutex
 }
 
 type DB_struct struct {
-	Chirps map[string]Chirp `json:"chirps"`
+	Chirps map[int]Chirp `json:"chirps"`
 }
 
 type Chirp struct {
-	Id   int
-	Body string
+	ID   int    `json:"id"`
+	Body string `json:"body"`
 }
 
 const (
-    database_name = "database.json"
+	database_name = "database.json"
 )
 
-func (db *DB) EnsureDB() error {
-    _, err := os.Open(database_name)
-    if err != os.ErrNotExist {
-        err = os.WriteFile(database_name, nil, 667)
-        return err
-    } 
-    return nil
+func (db *DB) CreateDB() error {
+    db_struct := DB_struct{
+        Chirps: make(map[int]Chirp),
+    }
+    return db.WriteDB(db_struct)
 }
 
+func (db *DB) EnsureDB() error {
+    _, err := os.ReadFile(db.Path)
+	if errors.Is(err, os.ErrNotExist) {
+		return db.CreateDB()
+	}
+	return err
+}
 
-func NewDB(path string) (*DB, error) {      
-    err := os.WriteFile(database_name, nil, 667)
-    if err != nil {
-        return &DB{}, err
-    }
-
-    return &DB {
-        Path: "./database/database.json",
-        Mutex: &sync.RWMutex{},
-    }, nil
+func NewDB(path string) (*DB, error) {
+    db := &DB{
+		Path:  "./database.json",
+		Mutex: &sync.RWMutex{},
+	}
+    err := db.EnsureDB()
+    return db, err
 }
 
 func (db *DB) CreateChirp(body string) (Chirp, error) {
-    db.Mutex.Lock() 
-    defer db.Mutex.Unlock()
-
-    chirp_id := 0
-    chirp  := Chirp {
-        Id: chirp_id,
-        Body: body,
-    }
-
-    db_struct, err := db.loadDB()
+    db_struct, err := db.LoadDB()
     if err != nil {
-        return Chirp{}, err 
+        return Chirp{},  nil
     }
 
-    db_struct.Chirps[fmt.Sprint(chirp_id)] = chirp
-    chirp_id++
+    id := len(db_struct.Chirps) + 1
+	chirp := Chirp{
+		ID:   id,
+		Body: body,
+	}
 
-    err = db.WriteDB(db_struct) 
-    if err != nil {
-        return Chirp{}, nil
-    }
+	db_struct.Chirps[id] = chirp
 
-    return chirp, nil
+	err = db.WriteDB(db_struct)
+	if err != nil {
+		return Chirp{}, nil
+	}
+
+	return chirp, nil
 }
 
 func (db *DB) GetChirps() ([]Chirp, error) {
-    db.Mutex.Lock()
-    defer db.Mutex.Unlock()
+	var all_chirps []Chirp
+	db_struct, err := db.LoadDB()
+	if err != nil {
+		return nil, err
+	}
 
-    var all_chirps []Chirp
-    db_struct, err := db.loadDB()
-    if err != nil {
-        return nil, err 
-    }
+	for _, chirp := range db_struct.Chirps {
+		all_chirps = append(all_chirps, chirp)
+	}
 
-    for _, chirp := range db_struct.Chirps {
-        all_chirps = append(all_chirps, chirp) 
-    }
-
-    return all_chirps, nil
+	return all_chirps, nil
 }
 
+func (db *DB) LoadDB() (DB_struct, error) {
+	db_struct := DB_struct{}
 
-func (db *DB) loadDB() (DB_struct, error) {
-    db.Mutex.Lock()
-    defer db.Mutex.Unlock()
-    data, err := os.ReadFile(db.Path)
-    if err != nil {
-        return DB_struct{}, err
-    }
+	data, err := os.ReadFile(db.Path)
+	if err != nil {
+		return DB_struct{}, err
+	}
 
-    db_struct := DB_struct{}
+	err = json.Unmarshal(data, &db_struct)
+	if err != nil {
+		log.Printf("Couldn't Unmarshal data: %v", err)
+		return DB_struct{}, err
+	}
 
-    err = json.Unmarshal(data, db_struct) 
-    if err != nil {
-        log.Printf("Couldn't Unmarshal data: %v", err)
-        return DB_struct{}, err
-    }
-
-    return db_struct, nil
+	return db_struct, nil
 }
 
 func (db *DB) WriteDB(db_struct DB_struct) error {
-    db.Mutex.Lock()
-    defer db.Mutex.Unlock()
+	data, err := json.Marshal(db_struct)
+	if err != nil {
+		log.Printf("Couldn't marshal data: %v", err)
+		return err
+	}
 
-    file, err := os.Open(db.Path)
-    if err != nil {
-        log.Printf("Couldn't open file: %v", err)
-        return err
-    }
+	err = os.WriteFile(db.Path, data, 0600)
+	if err != nil {
+		log.Printf("Couldn't Write Data: %v", err)
+		return err
+	}
 
-    data, err := json.Marshal(db_struct)
-    if err != nil {
-        log.Printf("Couldn't marshal data: %v", err)
-        return err
-    }
-
-    _, err = file.Write(data)
-    if err != nil {
-        log.Printf("Couldn't Write Data: %v", err)
-        return err
-    }
-
-    return nil
+	return nil
 }
-
-

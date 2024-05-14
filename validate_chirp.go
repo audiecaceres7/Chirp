@@ -7,6 +7,11 @@ import (
 	"strings"
 )
 
+type Chirp struct {
+	ID   int    `json:"id"`
+	Body string `json:"body"`
+}
+
 func ReplaceProfaneWords(message string) string {
 	profaneWords := []string{"kerfuffle", "fornax", "sharbert"}
 	arr := strings.Split(message, " ")
@@ -32,12 +37,15 @@ func (cfg *apiConfig) HandleChirp(w http.ResponseWriter, r *http.Request) {
 		log.Printf("Error marsheling json: %v", err)
     }
 
-    new_chirp, err := cfg.db.CreateChirp(parameters.Body)
+    new_chirp, err := cfg.db.CreateChirp(ReplaceProfaneWords(parameters.Body))
     if err != nil {
         log.Println(err)
     }
 
-    RespondWithJSON(w, http.StatusCreated, new_chirp)
+    RespondWithJSON(w, http.StatusCreated, Chirp{
+        ID: new_chirp.ID,
+        Body: new_chirp.Body,
+    })
 }
 
 func (cfg *apiConfig) HandleChirps(w http.ResponseWriter, r *http.Request) {
@@ -46,7 +54,7 @@ func (cfg *apiConfig) HandleChirps(w http.ResponseWriter, r *http.Request) {
         log.Println(err)
     }
 
-    RespondWithJSON(w, http.StatusCreated, all_chirps)
+    RespondWithJSON(w, http.StatusOK, all_chirps)
 }
 
 func RespondWithJSON(w http.ResponseWriter, code int, parameters interface{}) {
