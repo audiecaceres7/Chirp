@@ -26,13 +26,13 @@ func (cfg *apiConfig) HandlerCreateUser(w http.ResponseWriter, r *http.Request) 
 	}
 
 	user, err := cfg.db.CreateUser(params.Email, params.Passoword)
-    if err != nil {
-        RespondWithError(w, http.StatusUnauthorized, err.Error())
-        return
-    } 
+	if err != nil {
+		RespondWithError(w, http.StatusUnauthorized, err.Error())
+		return
+	}
 
-    RespondWithJSON(w, http.StatusCreated, User{
-        ID:    user.ID,
-        Email: user.Email,
-    })
+	RespondWithJSON(w, http.StatusCreated, User{
+		ID:    user.ID,
+		Email: user.Email,
+	})
 }

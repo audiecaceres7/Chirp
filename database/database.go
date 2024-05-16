@@ -31,6 +31,11 @@ type Chirp struct {
 	Body string `json:"body"`
 }
 
+type NewUserInfo struct {
+    Email    string
+    Password string
+}
+
 const (
 	database_name = "database.json"
 )
@@ -88,19 +93,19 @@ func (db *DB) CreateUser(email string, password string) (User, error) {
 		return User{}, err
 	}
 
-    all_users, _ := db.GetUsers()
-    for _, user := range all_users {
-        if user.Email == email {
-            return User{}, errors.New("User already exists")
-        }
-    }
+	all_users, _ := db.GetUsers()
+	for _, user := range all_users {
+		if user.Email == email {
+			return User{}, errors.New("User already exists")
+		}
+	}
 
-    val, _ := bcrypt.GenerateFromPassword([]byte(password), 12)
+	val, _ := bcrypt.GenerateFromPassword([]byte(password), 12)
 	id := len(db_struct.Users) + 1
 	user := User{
-		ID:    id,
-		Email: email,
-        Password: string(val),
+		ID:       id,
+		Email:    email,
+		Password: string(val),
 	}
 
 	db_struct.Users[id] = user
@@ -111,6 +116,28 @@ func (db *DB) CreateUser(email string, password string) (User, error) {
 	}
 
 	return user, nil
+}
+
+func (db *DB) UpdateUser(id int, newUser User) error {
+    db_struct, err := db.LoadDB()
+    if err != nil {
+        return err
+    }
+
+    if user, ok := db_struct.Users[id]; ok {
+	    val, _ := bcrypt.GenerateFromPassword([]byte(newUser.Password), 12)
+        user.Email = newUser.Email
+        user.Password = string(val)
+
+        db_struct.Users[id] = user
+    } 
+
+    err = db.WriteDB(db_struct)
+    if err != nil {
+        return err
+    }
+
+    return nil    
 }
 
 func (db *DB) GetUsers() ([]User, error) {

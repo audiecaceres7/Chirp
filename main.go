@@ -8,6 +8,7 @@ import (
 	"os"
 
 	"chirpy.com/database"
+	"github.com/joho/godotenv"
 )
 
 const (
@@ -19,24 +20,29 @@ const (
 type apiConfig struct {
 	fileserverHits int
 	db             *database.DB
+	jwtSecret      string
 }
 
 func main() {
+	godotenv.Load()
+	jwtSecret := os.Getenv("JWT_SECRET")
+
 	mux := http.NewServeMux()
-    dbg := flag.Bool("debug", false, "Enable debug mode")
-    flag.Parse()
-    if *dbg {
-        fmt.Println("debug mode enabled")
-        err := os.Remove("database.json")
-        if err != nil {
-            fmt.Printf("Error deleting file: %v\n", err)
-        }
-    }
+	dbg := flag.Bool("debug", false, "Enable debug mode")
+	flag.Parse()
+	if *dbg {
+		fmt.Println("debug mode enabled")
+		err := os.Remove("database.json")
+		if err != nil {
+			fmt.Printf("Error deleting file: %v\n", err)
+		}
+	}
 
 	db, err := database.NewDB(database_path)
 	config := apiConfig{
 		fileserverHits: 0,
 		db:             db,
+		jwtSecret:      jwtSecret,
 	}
 
 	err = config.db.EnsureDB()
@@ -47,6 +53,7 @@ func main() {
 	mux.HandleFunc("POST /api/login", config.HandlerLogin)
 	mux.HandleFunc("POST /api/chirps", config.HandleChirp)
 	mux.HandleFunc("POST /api/users", config.HandlerCreateUser)
+	mux.HandleFunc("PUT /api/users", config.HandlerUpdateUser)
 	mux.HandleFunc("GET /api/chirps", config.HandleChirps)
 	mux.HandleFunc("GET /api/chirps/{chirp_id}", config.HandleChirpId)
 	mux.HandleFunc("GET /api/healthz", HandleReadiness)
